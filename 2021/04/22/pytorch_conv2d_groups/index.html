@@ -6,15 +6,26 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="http://example.com">
-  <title>Archives | Nathan Waaang&#39;s Blog</title>
+  <title>Pytorch nn.Conv2d 中 groups 参数理解 | Nathan Waaang&#39;s Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Nathan Waaang&#39;s Blog">
-<meta property="og:url" content="http://example.com/archives/index.html">
+  <meta name="description" content="Pytorch 中 nn.Conv2d 是计算机视觉中常用的卷积操作之一，但其中的 groups 参数却很少用到。本文从官方手册开始，举例介绍了 groups 参数对卷积参数维度的影响，同时附上该参数的应用场景介绍链接，方便后续深入研究">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Pytorch nn.Conv2d 中 groups 参数理解">
+<meta property="og:url" content="http://example.com/2021/04/22/pytorch_conv2d_groups/index.html">
 <meta property="og:site_name" content="Nathan Waaang&#39;s Blog">
+<meta property="og:description" content="Pytorch 中 nn.Conv2d 是计算机视觉中常用的卷积操作之一，但其中的 groups 参数却很少用到。本文从官方手册开始，举例介绍了 groups 参数对卷积参数维度的影响，同时附上该参数的应用场景介绍链接，方便后续深入研究">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2021/04/22/pytorch_conv2d_groups/1.png">
+<meta property="og:image" content="http://example.com/2021/04/22/pytorch_conv2d_groups/2.png">
+<meta property="article:published_time" content="2021-04-22T06:23:22.000Z">
+<meta property="article:modified_time" content="2021-04-22T14:58:23.578Z">
 <meta property="article:author" content="Nathan Waaang">
+<meta property="article:tag" content="深度学习">
+<meta property="article:tag" content="卷积">
+<meta property="article:tag" content="Pytorch">
+<meta property="article:tag" content="参数理解">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2021/04/22/pytorch_conv2d_groups/1.png">
   
     <link rel="alternative" href="/atom.xml" title="Nathan Waaang&#39;s Blog" type="application/atom+xml">
   
@@ -154,36 +165,89 @@
             <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
-  
-  
+            <article id="post-pytorch_conv2d_groups" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
     
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2021" class="archive-year">2021</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2021/04/22/pytorch_conv2d_groups/" class="archive-article-date">
-  	<time datetime="2021-04-22T06:23:22.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-04-22</time>
-</a>
-        </div>
-    	 
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2021/04/22/pytorch_conv2d_groups/">Pytorch nn.Conv2d 中 groups 参数理解</a>
+    <h1 class="article-title" itemprop="name">
+      Pytorch nn.Conv2d 中 groups 参数理解
     </h1>
   
 
-        <div class="article-info info-on-right">
-          
+        
+        <a href="/2021/04/22/pytorch_conv2d_groups/" class="archive-article-date">
+  	<time datetime="2021-04-22T06:23:22.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-04-22</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><br>Pytorch 中 nn.Conv2d 是计算机视觉中常用的卷积操作之一，但其中的 <code>groups</code> 参数却很少用到。本文从官方手册开始，举例介绍了 <code>groups</code> 参数对卷积参数维度的影响，同时附上该参数的应用场景介绍链接，方便后续深入研究</p>
+<span id="more"></span>
+
+<h2 id="官方手册解释"><a href="#官方手册解释" class="headerlink" title="官方手册解释"></a>官方手册解释</h2><p>torch.nn.Conv2d 在<a target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d">官方手册</a>中是这样描述的：</p>
+<blockquote>
+<p>torch.nn.Conv2d <em>(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode=’zeros’)</em></p>
+<ul>
+<li><p><code>stride</code> controls the stride for the cross-correlation, a single number or a tuple.</p>
+</li>
+<li><p><code>padding</code> controls the amount of implicit padding on both sides for <code>padding</code> number of points for each dimension.</p>
+</li>
+<li><p><code>dilation</code> controls the spacing between the kernel points; also known as the à trous algorithm. It is harder to describe, but this <a target="_blank" rel="noopener" href="https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md">link</a> has a nice visualization of what <code>dilation</code> does.</p>
+</li>
+<li><p><code>groups</code> controls the connections between inputs and outputs. <code>in_channels</code> and <code>out_channels</code> must both be divisible by <code>groups</code>. For example,</p>
+</li>
+<li><p>At groups=1, all inputs are convolved to all outputs.</p>
+</li>
+<li><p>At groups=2, the operation becomes equivalent to having two conv layers side by side, each seeing half the input channels and producing half the output channels, and both subsequently concatenated.</p>
+</li>
+<li><p>At groups= <code>in_channels</code>, each input channel is convolved with its own set of filters (of size $ \frac{\text{out_channels}}{\text{in_channels}} $).</p>
+</li>
+</ul>
+</blockquote>
+<p>其他参数均容易理解，但不常用的 <code>groups</code> 参数官方手册介绍的并不是很清楚。正如 <code>groups</code> 字面意思”组“，该参数指定了通道被切分成的组数，而每个卷积核仅在一个组内进行卷积。</p>
+<h2 id="举例说明"><a href="#举例说明" class="headerlink" title="举例说明"></a>举例说明</h2><p>在举例说明部分，我们使用维度为 (1, 6, 5, 5) 的张量 a 进行操作，a 的维度可以理解为有 1 个通道为 6 的待处理数据，且每个通道为 (5, 5) 的二维数组。设定卷积后的输出通道数为 9。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">import</span> torch</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>a = torch.randn(<span class="number">1</span>, <span class="number">6</span>, <span class="number">5</span>, <span class="number">5</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="未指定-groups-参数"><a href="#未指定-groups-参数" class="headerlink" title="未指定 groups 参数"></a>未指定 <code>groups</code> 参数</h4><p>一般情况下我们使用 <code>Conv2d</code> 函数并不指定 <code>groups</code> 参数， <code>groups</code> 参数默认为 1。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>conv1 = torch.nn.Conv2d(in_channels=<span class="number">6</span>, out_channels=<span class="number">9</span>, kernel_size=<span class="number">1</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>conv1.weight.data.shape</span><br><span class="line">torch.Size([<span class="number">9</span>, <span class="number">6</span>, <span class="number">1</span>, <span class="number">1</span>])</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>b = conv1(a)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>b.shape</span><br><span class="line">torch.Size([<span class="number">1</span>, <span class="number">9</span>, <span class="number">5</span>, <span class="number">5</span>])</span><br></pre></td></tr></table></figure>
+
+<p>由上面的代码可知，conv1 中的参数维度为 (9, 6, 1, 1)。由于 <code>groups</code> 默认为 1，所有的张量都在一个组中。对于 1 个通道为 6 的待处理数据，每个卷积核对所有通道进行卷积，即卷积核维度为 (6, 1, 1)。又输出通道数为 9，则 conv1 中有 9 个维度为 (6, 1, 1) 的卷积核，即参数维度为 (9, 6, 1, 1)。在本例中对 6 个通道的卷积如图 (1) 所示：</p>
+<div align="center">
+
+<img src="1.png" alt="1" style="zoom:80%;"/>
+
+</div>
+
+<center style="color:#B0B0B0;">图 1 ：在未设置 groups 参数时 1 个卷积核生成 1 个通道的输出张量</center>
+
+<h4 id="指定-groups-参数"><a href="#指定-groups-参数" class="headerlink" title="指定 groups 参数"></a>指定 <code>groups</code> 参数</h4><p>指定 <code>groups</code> 参数时通道被分为 groups 个组，每个卷积核在一个组内进行卷积操作。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>conv2 = torch.nn.Conv2d(in_channels=<span class="number">6</span>, out_channels=<span class="number">9</span>, kernel_size=<span class="number">1</span>, groups=<span class="number">3</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>conv2.weight.data.shape</span><br><span class="line">torch.Size([<span class="number">9</span>, <span class="number">2</span>, <span class="number">1</span>, <span class="number">1</span>])</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>c = conv2(a)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>c.shape</span><br><span class="line">torch.Size([<span class="number">1</span>, <span class="number">9</span>, <span class="number">5</span>, <span class="number">5</span>])</span><br></pre></td></tr></table></figure>
+
+<p>由上面的代码可知，conv2 中的参数维度为 (9, 2, 1, 1)。<code>groups</code> 参数被设置为 3，张量被分为 3 个组。对于 1 个通道为 6 的待处理数据，输入张量每个组中的通道数为 $ {6 / 3} = 2 $ ，那么每个卷积核的维度为 (2, 1, 1)；输出张量每个组的通道为 $ {9 / 3} = 3 $，那么需要 3 个卷积核才能完成一个组的全部卷积工作。每组需要 3 个卷积核，3 组需要 $ 3 * 3 = 9 $ 个 (2, 1, 1) 卷积核，因此 conv2 的参数维度为 (9, 2, 1, 1)。在本例中对 6 个通道的卷积如图 (2) 所示：</p>
+<div align="center">
+
+<img src="2.png" alt="1" style="zoom:80%;">
+
+</div>
+
+<center style="color:#B0B0B0;">图 2 ：在设置 groups=3 时 3 个卷积核生成 3 个通道的输出张量</center>
+
+<h4 id="函数小结"><a href="#函数小结" class="headerlink" title="函数小结"></a>函数小结</h4><p>一个卷积核仅对一个组进行卷积。若当前卷积操作输入通道为 $\text{in_channels}$，输出通道为 $\text{out_channels}$，卷积操作中有 $\text{group}$ 个组，那么:</p>
+<p>该卷积中每个组需要 $\text{out_channels / group}$ 个卷积核，所有组总共需要 $\text{group * out_channels / group = out_channel}$ 个卷积核每个卷积。核的通道为 $\text{in_channels / group}$。</p>
+<p>即：卷积参数维度为 $$ \text{(out_channels, in_channels / group, kernel_size, kernel_size)} $$</p>
+<h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><p>在官方手册中指出，当 <code>groups</code> 参数等于 in_channels 时，每个卷积核的维度为 $\text{(1, kernel_size, kernel_size)}$，一个卷积核仅对一个通道进行卷积，这也正是 <a target="_blank" rel="noopener" href="https://arxiv.org/abs/1704.04861">MobileNet</a> 中 depthwise convolution 思想的体现。若想进一步了解 MobileNet 可以参考 <a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/31551004">CNN模型之MobileNet</a>。</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
 	<div class="article-tag tagcloud">
 		<i class="icon-price-tags icon"></i>
 		<ul class="article-tag-list">
@@ -207,46 +271,106 @@
 		</ul>
 	</div>
 
-          
+      
 
+      
+
+      
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
         </div>
-        <div class="clearfix"></div>
-    </header>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//pan.baidu.com/share/qrcode?url=http://example.com/2021/04/22/pytorch_conv2d_groups/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
   
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2021/04/22/hello-world/" class="archive-article-date">
-  	<time datetime="2021-04-22T06:15:53.376Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-04-22</time>
-</a>
+<nav id="article-nav">
+  
+  
+    <a href="/2021/04/22/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Hello World</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
         </div>
-    	 
+        
+        
+    </div>
+</aside>
+
+
+
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2021/04/22/hello-world/">Hello World</a>
-    </h1>
+  
   
 
-        <div class="article-info info-on-right">
-          
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-  
-    </div></section>
   
 
-    
+  
+
+  
 
 
           </div>
@@ -269,8 +393,8 @@
 	var yiliaConfig = {
 		mathjax: true,
 		isHome: false,
-		isPost: false,
-		isArchive: true,
+		isPost: true,
+		isArchive: false,
 		isTag: false,
 		isCategory: false,
 		open_in_new: false,
